@@ -23,4 +23,7 @@ public class DeliveryAgent {
     private User user;
 
     private boolean isAvailable;
+
+    @Embedded
+    private Location currentLocation;
 }

@@ -6,6 +6,7 @@ import com.example.deliverify.security.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.*;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.*;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,8 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.*;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@EnableGlobalMethodSecurity(prePostEnabled = true)
 @Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -38,44 +39,23 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-/*
-.csrf(csrf -> csrf.disable())
 
-CSRF protection is disabled since we're using token-based stateless auth (not sessions).
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .cors(Customizer.withDefaults()) // ✅ Enable CORS
+                .csrf(csrf -> csrf.disable())
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth ->
+                        auth
+                                .requestMatchers("/api/auth/**").permitAll()    // ✅ Login/Register routes
+                                .requestMatchers("/ws/**").permitAll()          // ✅ Allow WebSocket handshake
+                                .anyRequest().authenticated()                   // 🔒 Protect everything else
+                );
 
-.exceptionHandling(...)
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-Registers the JwtAuthenticationEntryPoint to handle unauthorized access.
-
-.sessionManagement(...)
-
-Ensures app is stateless (no sessions stored on the server).
-
-.authorizeHttpRequests(...)
-
-Allows unauthenticated access to /api/auth/** routes (like login/register)
-
-Requires all other requests to be authenticated.
-
-http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-Registers our JwtAuthenticationFilter before Spring's built-in username-password filter, so we can inject JWT-based logic.
- */
-@Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-            .csrf(csrf -> csrf.disable())
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth ->
-                    auth
-                            .requestMatchers("/api/auth/**").permitAll() // ✅ allow /auth/*
-                            .anyRequest().authenticated()
-            );
-
-    http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
-    return http.build();
-}
-
+        return http.build();
+    }
 }

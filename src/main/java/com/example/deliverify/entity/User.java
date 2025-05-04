@@ -22,7 +22,6 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role; // CUSTOMER, ADMIN, AGENT
-
     private String phoneNumber;
 
     @Embedded
